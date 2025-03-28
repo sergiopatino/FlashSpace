@@ -47,8 +47,15 @@ final class FocusedWindowTracker {
         // Skip if the workspace was activated recently
         guard Date().timeIntervalSince(workspaceManager.lastWorkspaceActivation) > 0.2 else { return }
 
-        // Skip if the app is floating
-        guard !settingsRepository.floatingAppsSettings.floatingApps.containsApp(app) else { return }
+        // If the app is floating, track it as the most recently focused floating app
+        if settingsRepository.floatingAppsSettings.floatingApps.containsApp(app) {
+            settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = app.toMacApp
+            return
+        } else {
+            // If a non-floating app is focused, clear the last focused floating app
+            // This ensures floating apps only remain in foreground until another app is focused
+            settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = nil
+        }
 
         // Find the workspace that contains the app.
         // The same app can be in multiple workspaces, the highest priority has the one

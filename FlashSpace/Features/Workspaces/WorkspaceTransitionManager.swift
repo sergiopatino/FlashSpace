@@ -16,6 +16,13 @@ final class WorkspaceTransitionManager {
     }
 
     func showTransitionIfNeeded(for workspace: Workspace) {
+        // If user is transitioning to a specific workspace by selecting a non-floating app,
+        // clear any tracked floating app focus
+        if let frontmostApp = NSWorkspace.shared.frontmostApplication,
+           !AppDependencies.shared.settingsRepository.floatingAppsSettings.floatingApps.containsApp(frontmostApp) {
+            AppDependencies.shared.settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = nil
+        }
+
         guard settings.enableWorkspaceTransitions else {
             // Small delay to allow workspace to be activated
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
