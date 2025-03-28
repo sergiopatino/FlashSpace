@@ -51,6 +51,10 @@ final class FocusedWindowTracker {
         if settingsRepository.floatingAppsSettings.floatingApps.containsApp(app) {
             settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = app.toMacApp
             return
+        } else {
+            // If a non-floating app is focused, clear the last focused floating app
+            // This ensures floating apps only remain in foreground until another app is focused
+            settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = nil
         }
 
         // Find the workspace that contains the app.

@@ -80,7 +80,7 @@ extension FloatingAppsHotKeys {
                 message: "\(appName) - Removed From Floating Apps",
                 textColor: .negative
             )
-            
+
             // Clear the last focused floating app if this was it
             if floatingAppsSettings.lastFocusedFloatingApp?.bundleIdentifier == activeApp.bundleIdentifier {
                 floatingAppsSettings.lastFocusedFloatingApp = nil

@@ -13,7 +13,7 @@ final class FloatingAppsSettings: ObservableObject {
     @Published var floatTheFocusedApp: AppHotKey?
     @Published var unfloatTheFocusedApp: AppHotKey?
     @Published var toggleTheFocusedAppFloating: AppHotKey?
-    
+
     // Track the most recently focused floating app to maintain it in foreground across workspaces
     @Published var lastFocusedFloatingApp: MacApp?
 
@@ -40,7 +40,7 @@ final class FloatingAppsSettings: ObservableObject {
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] in self?.updateSubject.send() }
-        
+
         // Also listen for profile changes to reset the last focused floating app
         NotificationCenter.default
             .publisher(for: .profileChanged)
@@ -49,7 +49,7 @@ final class FloatingAppsSettings: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     private var cancellables = Set<AnyCancellable>()
 }
 
