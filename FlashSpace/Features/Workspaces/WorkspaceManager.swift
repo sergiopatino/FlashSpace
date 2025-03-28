@@ -106,14 +106,19 @@ final class WorkspaceManager: ObservableObject {
                     $0.isOnTheSameScreen(as: workspace)
             }
 
+        // Get the last focused floating app if it's still running
+        let lastFocusedFloatingApp = floatingAppsSettings.lastFocusedFloatingApp.flatMap { focusedApp in
+            regularApps.first { $0.bundleIdentifier == focusedApp.bundleIdentifier }
+        }
+
         observeFocusCancellable = nil
         defer { observeFocus() }
 
         if setFocus {
-            let toFocus = findAppToFocus(in: workspace, apps: appsToShow)
+            // Determine which app to focus - prefer last focused floating app or workspace app
+            let toFocus = lastFocusedFloatingApp ?? findAppToFocus(in: workspace, apps: appsToShow)
 
-            // Make sure to raise the app that should be focused
-            // as the last one
+            // Make sure to raise the app that should be focused as the last one
             if let toFocus {
                 appsToShow.removeAll { $0 == toFocus }
                 appsToShow.append(toFocus)
@@ -133,9 +138,21 @@ final class WorkspaceManager: ObservableObject {
             toFocus?.activate()
             centerCursorIfNeeded(in: toFocus?.frame)
         } else {
+            // If we're not setting focus but have a last focused floating app, ensure it's raised last
+            if let lastFocusedFloatingApp {
+                appsToShow.removeAll { $0 == lastFocusedFloatingApp }
+                appsToShow.append(lastFocusedFloatingApp)
+            }
+
             for app in appsToShow {
                 Logger.log("SHOW: \(app.localizedName ?? "")")
                 app.raise()
+            }
+
+            // Re-activate the last focused floating app if exists
+            if let lastFocusedFloatingApp {
+                Logger.log("FOCUS FLOATING: \(lastFocusedFloatingApp.localizedName ?? "")")
+                lastFocusedFloatingApp.activate()
             }
         }
     }
