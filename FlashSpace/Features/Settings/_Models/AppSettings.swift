@@ -53,6 +53,7 @@ struct AppSettings: Codable {
     var floatTheFocusedApp: AppHotKey?
     var unfloatTheFocusedApp: AppHotKey?
     var toggleTheFocusedAppFloating: AppHotKey?
+    var maintainFloatingAppFocus: Bool?
 
     // Space Control
     var enableSpaceControl: Bool?

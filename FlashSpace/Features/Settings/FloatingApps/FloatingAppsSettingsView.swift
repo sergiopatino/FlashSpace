@@ -28,9 +28,8 @@ struct FloatingAppsSettingsView: View {
                     appsList
                 }
 
-                Text("Floating applications remain visible across all workspaces.")
-                    .foregroundStyle(.secondary)
-                    .font(.callout)
+                Toggle("Maintain floating app focus across workspaces", isOn: $settings.maintainFloatingAppFocus)
+                    .padding(.top, 8)
             }
 
             Section("Shortcuts") {
