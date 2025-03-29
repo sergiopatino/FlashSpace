@@ -107,11 +107,14 @@ final class WorkspaceManager: ObservableObject {
             }
 
         // Get the last focused floating app if it's still running and is on the same screen
-        let lastFocusedFloatingApp = floatingAppsSettings.lastFocusedFloatingApp.flatMap { focusedApp in
-            let matchingApp = regularApps.first { $0.bundleIdentifier == focusedApp.bundleIdentifier }
-            // Only maintain focus if it's on the same screen as the workspace we're activating
-            return matchingApp?.isOnTheSameScreen(as: workspace) == true ? matchingApp : nil
-        }
+        // Only try to maintain focus if the setting is enabled
+        let lastFocusedFloatingApp = floatingAppsSettings.maintainFloatingAppFocus
+            ? floatingAppsSettings.lastFocusedFloatingApp.flatMap { focusedApp in
+                let matchingApp = regularApps.first { $0.bundleIdentifier == focusedApp.bundleIdentifier }
+                // Only maintain focus if it's on the same screen as the workspace we're activating
+                return matchingApp?.isOnTheSameScreen(as: workspace) == true ? matchingApp : nil
+            }
+            : nil
 
         observeFocusCancellable = nil
         defer { observeFocus() }

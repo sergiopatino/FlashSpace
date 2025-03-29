@@ -13,6 +13,7 @@ final class FloatingAppsSettings: ObservableObject {
     @Published var floatTheFocusedApp: AppHotKey?
     @Published var unfloatTheFocusedApp: AppHotKey?
     @Published var toggleTheFocusedAppFloating: AppHotKey?
+    @Published var maintainFloatingAppFocus: Bool = true
 
     // Track the most recently focused floating app to maintain it in foreground across workspaces
     @Published var lastFocusedFloatingApp: MacApp?
@@ -36,7 +37,8 @@ final class FloatingAppsSettings: ObservableObject {
             $floatingApps.settingsPublisher(),
             $floatTheFocusedApp.settingsPublisher(),
             $unfloatTheFocusedApp.settingsPublisher(),
-            $toggleTheFocusedAppFloating.settingsPublisher()
+            $toggleTheFocusedAppFloating.settingsPublisher(),
+            $maintainFloatingAppFocus.settingsPublisher()
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] in self?.updateSubject.send() }
@@ -64,6 +66,7 @@ extension FloatingAppsSettings: SettingsProtocol {
         floatTheFocusedApp = appSettings.floatTheFocusedApp
         unfloatTheFocusedApp = appSettings.unfloatTheFocusedApp
         toggleTheFocusedAppFloating = appSettings.toggleTheFocusedAppFloating
+        maintainFloatingAppFocus = appSettings.maintainFloatingAppFocus ?? true
         lastFocusedFloatingApp = nil
         observe()
     }
@@ -73,5 +76,6 @@ extension FloatingAppsSettings: SettingsProtocol {
         appSettings.floatTheFocusedApp = floatTheFocusedApp
         appSettings.unfloatTheFocusedApp = unfloatTheFocusedApp
         appSettings.toggleTheFocusedAppFloating = toggleTheFocusedAppFloating
+        appSettings.maintainFloatingAppFocus = maintainFloatingAppFocus
     }
 }

@@ -23,6 +23,11 @@ final class WorkspaceTransitionManager {
             AppDependencies.shared.settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = nil
         }
 
+        // If maintain floating app focus is disabled, ensure no floating app is tracked
+        if !AppDependencies.shared.settingsRepository.floatingAppsSettings.maintainFloatingAppFocus {
+            AppDependencies.shared.settingsRepository.floatingAppsSettings.lastFocusedFloatingApp = nil
+        }
+
         guard settings.enableWorkspaceTransitions else {
             // Small delay to allow workspace to be activated
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
