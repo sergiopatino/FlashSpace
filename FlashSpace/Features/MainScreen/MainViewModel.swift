@@ -90,18 +90,22 @@ final class MainViewModel: ObservableObject {
     }
 
     var screens: [String] {
-        let set = Set<String>(NSScreen.screens.compactMap(\.localizedName))
+        let set = NSScreen.screens.compactMap(\.localizedName).asSet
         let otherScreens = workspaces.map(\.display)
+
         return Array(set.union(otherScreens))
-            .filter { !$0.isEmpty }
+            .filter(\.isNotEmpty)
             .sorted()
     }
+
+    var displayMode: DisplayMode { workspaceSettings.displayMode }
 
     private var cancellables: Set<AnyCancellable> = []
     private var loadingWorkspace = false
 
     private let workspaceManager = AppDependencies.shared.workspaceManager
     private let workspaceRepository = AppDependencies.shared.workspaceRepository
+    private let workspaceSettings = AppDependencies.shared.workspaceSettings
 
     init() {
         self.workspaces = workspaceRepository.workspaces
@@ -119,6 +123,12 @@ final class MainViewModel: ObservableObject {
         NotificationCenter.default
             .publisher(for: .profileChanged)
             .sink { [weak self] _ in self?.reloadWorkspaces() }
+            .store(in: &cancellables)
+
+        workspaceSettings.updatePublisher
+            .compactMap { [weak self] in self?.workspaceSettings.displayMode }
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
 
@@ -190,7 +200,7 @@ extension MainViewModel {
     func deleteSelectedWorkspaces() {
         guard !selectedWorkspaces.isEmpty else { return }
 
-        workspaceRepository.deleteWorkspaces(ids: Set(selectedWorkspaces.map(\.id)))
+        workspaceRepository.deleteWorkspaces(ids: selectedWorkspaces.map(\.id).asSet)
         workspaces = workspaceRepository.workspaces
         selectedWorkspaces = []
     }

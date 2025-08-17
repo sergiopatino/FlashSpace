@@ -18,6 +18,9 @@ final class WorkspaceCommands: CommandExecutor {
         case .activateWorkspace(.some(let name), _, let clean):
             let workspace = workspaceRepository.workspaces.first { $0.name == name }
             if let workspace {
+                if workspace.isDynamic, workspace.displays.isEmpty {
+                    return CommandResponse(success: false, error: "\(workspace.name) - No Running Apps To Show")
+                }
                 workspaceManager.activateWorkspace(workspace, setFocus: true)
                 if clean { workspaceManager.hideUnassignedApps() }
                 return CommandResponse(success: true)
@@ -28,6 +31,9 @@ final class WorkspaceCommands: CommandExecutor {
         case .activateWorkspace(_, .some(let number), let clean):
             let workspace = workspaceRepository.workspaces[safe: number - 1]
             if let workspace {
+                if workspace.isDynamic, workspace.displays.isEmpty {
+                    return CommandResponse(success: false, error: "\(workspace.name) - No Running Apps To Show")
+                }
                 workspaceManager.activateWorkspace(workspace, setFocus: true)
                 if clean { workspaceManager.hideUnassignedApps() }
                 return CommandResponse(success: true)
@@ -38,13 +44,13 @@ final class WorkspaceCommands: CommandExecutor {
         case .updateWorkspace(let request):
             return updateWorkspace(request)
 
-        case .nextWorkspace(let skipEmpty, let clean):
-            workspaceManager.activateWorkspace(next: true, skipEmpty: skipEmpty)
+        case .nextWorkspace(let skipEmpty, let clean, let loop):
+            workspaceManager.activateWorkspace(next: true, skipEmpty: skipEmpty, loop: loop)
             if clean { workspaceManager.hideUnassignedApps() }
             return CommandResponse(success: true)
 
-        case .previousWorkspace(let skipEmpty, let clean):
-            workspaceManager.activateWorkspace(next: false, skipEmpty: skipEmpty)
+        case .previousWorkspace(let skipEmpty, let clean, let loop):
+            workspaceManager.activateWorkspace(next: false, skipEmpty: skipEmpty, loop: loop)
             if clean { workspaceManager.hideUnassignedApps() }
             return CommandResponse(success: true)
 

@@ -45,10 +45,19 @@ final class WorkspaceHotKeys {
         guard let shortcut = workspace.activateShortcut else { return nil }
 
         let action = { [weak self] in
-            guard let updatedWorkspace = self?.workspaceRepository.workspaces
+            guard let self, let updatedWorkspace = workspaceRepository.workspaces
                 .first(where: { $0.id == workspace.id }) else { return }
 
-            self?.workspaceManager.activateWorkspace(updatedWorkspace, setFocus: true)
+            if updatedWorkspace.isDynamic, updatedWorkspace.displays.isEmpty {
+                Toast.showWith(
+                    icon: "square.stack.3d.up",
+                    message: "\(workspace.name) - No Running Apps To Show",
+                    textColor: .gray
+                )
+                return
+            }
+
+            workspaceManager.activateWorkspace(updatedWorkspace, setFocus: true)
         }
 
         return (shortcut, action)
@@ -115,7 +124,8 @@ final class WorkspaceHotKeys {
 
             workspaceManager.activateWorkspace(
                 next: next,
-                skipEmpty: workspaceSettings.skipEmptyWorkspacesOnSwitch
+                skipEmpty: workspaceSettings.skipEmptyWorkspacesOnSwitch,
+                loop: workspaceSettings.loopWorkspaces
             )
         }
 
@@ -156,8 +166,12 @@ extension WorkspaceHotKeys {
         guard let updatedWorkspace = workspaceRepository.workspaces
             .first(where: { $0.id == workspace.id }) else { return }
 
-        activeApp.centerApp(display: updatedWorkspace.displayWithFallback)
         workspaceManager.assignApp(activeApp.toMacApp, to: updatedWorkspace)
+
+        if !workspace.isDynamic {
+            activeApp.centerApp(display: workspace.display)
+        }
+
         Toast.showWith(
             icon: "square.stack.3d.up",
             message: "\(appName) - Assigned To \(workspace.name)",
@@ -176,12 +190,7 @@ extension WorkspaceHotKeys {
         }
 
         let visibleApps = NSWorkspace.shared.runningApplications
-            .filter {
-                $0.activationPolicy == .regular &&
-                    !$0.isHidden &&
-                    !floatingAppsSettings.floatingApps.containsApp($0) &&
-                    $0.isOnTheSameScreen(as: workspace)
-            }
+            .regularVisibleApps(onDisplays: workspace.displays, excluding: floatingAppsSettings.floatingApps)
 
         workspaceManager.assignApps(visibleApps.map(\.toMacApp), to: workspace)
 

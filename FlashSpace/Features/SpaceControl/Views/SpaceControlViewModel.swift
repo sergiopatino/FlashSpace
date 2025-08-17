@@ -5,6 +5,7 @@
 //  Copyright © 2025 Wojciech Kulik. All rights reserved.
 //
 
+import AppKit
 import Combine
 import SwiftUI
 
@@ -18,9 +19,21 @@ struct SpaceControlWorkspace {
 }
 
 final class SpaceControlViewModel: ObservableObject {
+    @Published var isVisible = false
+
     @Published private(set) var workspaces: [SpaceControlWorkspace] = []
     @Published private(set) var numberOfRows = 0
     @Published private(set) var numberOfColumns = 0
+    @Published private(set) var tileSize: CGSize = .zero
+
+    var wallpaperImage: NSImage? {
+        if let screen = NSScreen.main,
+           let wallpaperURL = NSWorkspace.shared.desktopImageURL(for: screen) {
+            return NSImage(contentsOf: wallpaperURL)
+        }
+
+        return nil
+    }
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -28,9 +41,12 @@ final class SpaceControlViewModel: ObservableObject {
     private let workspaceRepository = AppDependencies.shared.workspaceRepository
     private let workspaceManager = AppDependencies.shared.workspaceManager
     private let screenshotManager = AppDependencies.shared.workspaceScreenshotManager
+    private let displayManager = AppDependencies.shared.displayManager
 
     init() {
         refresh()
+
+        self.isVisible = !settings.enableSpaceControlTilesAnimations
 
         NotificationCenter.default
             .publisher(for: .spaceControlArrowDown)
@@ -44,7 +60,8 @@ final class SpaceControlViewModel: ObservableObject {
     }
 
     func refresh() {
-        let activeWorkspaceIds = Set(workspaceManager.activeWorkspace.map(\.value.id))
+        let activeWorkspaceIds = workspaceManager.activeWorkspace.map(\.value.id).asSet
+        let mainDisplay = NSScreen.main?.localizedName ?? ""
 
         workspaces = Array(
             workspaceRepository.workspaces
@@ -52,17 +69,34 @@ final class SpaceControlViewModel: ObservableObject {
                 .prefix(15)
                 .enumerated()
                 .map {
-                    SpaceControlWorkspace(
+                    let workspace = $0.element
+                    let displayName = settings.spaceControlCurrentDisplayWorkspaces
+                        ? mainDisplay
+                        : self.mainDisplay(for: workspace)
+                    let key = WorkspaceScreenshotManager.ScreenshotKey(
+                        displayName: displayName,
+                        workspaceID: workspace.id
+                    )
+                    return SpaceControlWorkspace(
                         index: $0.offset,
-                        name: $0.element.name,
-                        symbol: $0.element.symbolIconName ?? .defaultIconSymbol,
-                        screenshotData: screenshotManager.screenshots[$0.element.id],
-                        isActive: activeWorkspaceIds.contains($0.element.id),
-                        originalWorkspace: $0.element
+                        name: workspace.name,
+                        symbol: workspace.symbolIconName ?? .defaultIconSymbol,
+                        screenshotData: screenshotManager.screenshots[key],
+                        isActive: activeWorkspaceIds.contains(workspace.id),
+                        originalWorkspace: workspace
                     )
                 }
         )
         calculateColsAndRows(workspaces.count)
+        calculateTileSize()
+    }
+
+    private func mainDisplay(for workspace: Workspace) -> DisplayName {
+        let workspaceDisplays = workspace.displays
+
+        return workspaceDisplays.count == 1
+            ? workspaceDisplays.first!
+            : displayManager.lastActiveDisplay(from: workspaceDisplays)
     }
 
     private func calculateColsAndRows(_ workspaceCount: Int) {
@@ -74,6 +108,36 @@ final class SpaceControlViewModel: ObservableObject {
         numberOfColumns = min(numberOfColumns, settings.spaceControlMaxColumns)
 
         numberOfRows = Int(ceil(Double(workspaceCount) / Double(numberOfColumns)))
+    }
+
+    private func calculateTileSize() {
+        let screenFrame = NSScreen.main?.frame ?? .init(x: 0, y: 0, width: 3024, height: 1964)
+
+        let width = screenFrame.width / CGFloat(numberOfColumns) - 120.0
+        let height = screenFrame.height / CGFloat(numberOfRows) - 120.0
+
+        let firstScreenshot = workspaces
+            .lazy
+            .compactMap { $0.screenshotData.flatMap(NSImage.init(data:)) }
+            .first
+
+        guard let firstScreenshot else {
+            tileSize = CGSize(width: width, height: min(height, width * 10.0 / 16.0))
+            return
+        }
+
+        let tileRatio = width / height
+        let screenshotRatio = firstScreenshot.size.width / firstScreenshot.size.height
+
+        if tileRatio > screenshotRatio {
+            // Tile is wider than screenshot, adjust width
+            let scaledWidth = height * screenshotRatio
+            tileSize = CGSize(width: scaledWidth, height: height)
+        } else {
+            // Tile is taller than screenshot, adjust height
+            let scaledHeight = width / screenshotRatio
+            tileSize = CGSize(width: width, height: scaledHeight)
+        }
     }
 
     private func handleArrowKey(_ keyCode: RawKeyCode) {

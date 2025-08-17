@@ -49,8 +49,17 @@ enum SpaceControl {
 
         PermissionsManager.shared.askForScreenRecordingPermissions()
 
-        if Self.window != nil { hide() }
+        if window != nil { hide() }
 
+        Task { @MainActor in
+            if settings.spaceControlUpdateScreenshotsOnOpen {
+                await AppDependencies.shared.workspaceScreenshotManager.updateScreenshots()
+            }
+            showWindow()
+        }
+    }
+
+    private static func showWindow() {
         let contentView = NSHostingView(
             rootView: SpaceControlView()
         )
@@ -63,15 +72,16 @@ enum SpaceControl {
             backing: .buffered,
             defer: false
         )
-        window.isOpaque = false
-        window.backgroundColor = .clear
         window.level = .screenSaver
         window.delegate = window
         Self.window = window
 
         let animations = settings.enableSpaceControlAnimations
 
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.contentView = contentView.addVisualEffect(material: .fullScreenUI)
+
         window.alphaValue = animations ? 0 : 1
 
         focusedAppBeforeShow = NSWorkspace.shared.frontmostApplication
@@ -80,12 +90,20 @@ enum SpaceControl {
         window.makeKeyAndOrderFront(nil)
 
         if animations {
-            window.animator().alphaValue = 1
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.16
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                window.animator().alphaValue = 1
+            }
         }
     }
 
     private static func validate() -> Bool {
-        if AppDependencies.shared.workspaceRepository.workspaces.count < 2 {
+        let workspaces = AppDependencies.shared.workspaceRepository.workspaces
+        let nonEmptyWorkspaces = workspaces
+            .filter { !settings.spaceControlCurrentDisplayWorkspaces || $0.isOnTheCurrentScreen }
+
+        if nonEmptyWorkspaces.count < 2 {
             Alert.showOkAlert(title: "Space Control", message: "You need at least 2 workspaces to use Space Control.")
             return false
         }

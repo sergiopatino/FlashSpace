@@ -13,6 +13,7 @@ final class ListCommands: CommandExecutor {
     var profilesRepository: ProfilesRepository { AppDependencies.shared.profilesRepository }
     var settingsRepository: SettingsRepository { AppDependencies.shared.settingsRepository }
 
+    // swiftlint:disable:next function_body_length
     func execute(command: CommandRequest) -> CommandResponse? {
         switch command {
         case .listWorkspaces(let withDisplay, let profileName):
@@ -21,9 +22,17 @@ final class ListCommands: CommandExecutor {
                 : profilesRepository.selectedProfile
 
             if let profile {
-                let result = withDisplay
-                    ? profile.workspaces.map { "\($0.name),\($0.displayWithFallback)" }.joined(separator: "\n")
-                    : profile.workspaces.map(\.name).joined(separator: "\n")
+                let result: String
+
+                if withDisplay {
+                    result = profile.workspaces.map {
+                        let displays = $0.displays.joined(separator: ",")
+                        return "\($0.name),\(displays.isEmpty ? "None" : displays)"
+                    }.joined(separator: "\n")
+                } else {
+                    result = profile.workspaces.map(\.name).joined(separator: "\n")
+                }
+
                 return CommandResponse(success: true, message: result)
             } else {
                 return CommandResponse(success: false, error: "Profile not found")
@@ -46,7 +55,7 @@ final class ListCommands: CommandExecutor {
                 return CommandResponse(success: false, error: "Workspace not found")
             }
 
-            let runningApps = Set(NSWorkspace.shared.runningApplications.map(\.bundleIdentifier))
+            let runningApps = NSWorkspace.shared.runningApplications.map(\.bundleIdentifier).asSet
 
             let result = workspace.apps
                 .filter { !onlyRunning || runningApps.contains($0.bundleIdentifier) }

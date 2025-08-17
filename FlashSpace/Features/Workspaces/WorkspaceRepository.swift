@@ -6,10 +6,11 @@
 //
 
 import AppKit
+import Combine
 import Foundation
 
-final class WorkspaceRepository {
-    private(set) var workspaces: [Workspace] = []
+final class WorkspaceRepository: ObservableObject {
+    @Published private(set) var workspaces: [Workspace] = []
 
     private let profilesRepository: ProfilesRepository
 
@@ -103,7 +104,7 @@ final class WorkspaceRepository {
             workspaces[sourceWorkspaceIndex].appToFocus = nil
         }
 
-        let targetAppBundleIds = Set(workspaces[targetWorkspaceIndex].apps.map(\.bundleIdentifier))
+        let targetAppBundleIds = workspaces[targetWorkspaceIndex].apps.map(\.bundleIdentifier).asSet
         let appsToAdd = apps.filter { !targetAppBundleIds.contains($0.bundleIdentifier) }
 
         workspaces[sourceWorkspaceIndex].apps.removeAll { apps.contains($0) }

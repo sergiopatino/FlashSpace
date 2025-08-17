@@ -33,6 +33,7 @@ struct AppSettings: Codable {
     // Gestures
     var enableSwipeGestures: Bool?
     var swipeThreshold: Double?
+    var restartAppOnWakeUp: Bool?
     var swipeLeft3FingerAction: GestureAction?
     var swipeRight3FingerAction: GestureAction?
     var swipeUp3FingerAction: GestureAction?
@@ -43,11 +44,18 @@ struct AppSettings: Codable {
     var swipeDown4FingerAction: GestureAction?
 
     // Workspaces
+    var displayMode: DisplayMode?
     var centerCursorOnWorkspaceChange: Bool?
     var changeWorkspaceOnAppAssign: Bool?
+    var activeWorkspaceOnFocusChange: Bool?
     var skipEmptyWorkspacesOnSwitch: Bool?
     var keepUnassignedAppsOnSwitch: Bool?
     var restoreHiddenAppsOnSwitch: Bool?
+    var enableWorkspaceTransitions: Bool?
+    var workspaceTransitionDuration: Double?
+    var workspaceTransitionDimming: Double?
+
+    var loopWorkspaces: Bool?
     var switchToPreviousWorkspace: AppHotKey?
     var switchToNextWorkspace: AppHotKey?
     var switchToRecentWorkspace: AppHotKey?
@@ -58,6 +66,7 @@ struct AppSettings: Codable {
     var hideUnassignedApps: AppHotKey?
     var alternativeDisplays: String?
     var enablePictureInPictureSupport: Bool?
+    var switchWorkspaceWhenPipCloses: Bool?
     var pipApps: [PipApp]?
     var pipScreenCornerOffset: Int?
 
@@ -71,11 +80,10 @@ struct AppSettings: Codable {
     var enableSpaceControl: Bool?
     var showSpaceControl: AppHotKey?
     var enableSpaceControlAnimations: Bool?
+    var enableSpaceControlTilesAnimations: Bool?
     var spaceControlCurrentDisplayWorkspaces: Bool?
+    var spaceControlUpdateScreenshotsOnOpen: Bool?
     var spaceControlMaxColumns: Int?
-    var enableWorkspaceTransitions: Bool?
-    var workspaceTransitionDuration: Double?
-    var workspaceTransitionDimming: Double?
 
     // Integrations
     var enableIntegrations: Bool?

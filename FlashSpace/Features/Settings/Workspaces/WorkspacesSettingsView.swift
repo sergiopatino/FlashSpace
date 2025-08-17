@@ -13,13 +13,25 @@ struct WorkspacesSettingsView: View {
 
     var body: some View {
         Form {
+            Section("Displays") {
+                Picker("Display Assignment Mode", selection: $settings.displayMode) {
+                    ForEach(DisplayMode.allCases) { action in
+                        Text(action.description).tag(action)
+                    }
+                }
+
+                Text("Static Mode requires you to manually assign workspaces to displays.\n\n" +
+                    "Dynamic Mode automatically assigns workspaces to displays " +
+                    "based on where your applications are located. In this mode, a single workspace can span across multiple displays."
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            }
+
             Section("Behaviors") {
+                Toggle("Activate Workspace On Focus Change", isOn: $settings.activeWorkspaceOnFocusChange)
                 Toggle("Center Cursor In Focused App On Workspace Change", isOn: $settings.centerCursorOnWorkspaceChange)
                 Toggle("Automatically Change Workspace On App Assignment", isOn: $settings.changeWorkspaceOnAppAssign)
-                Toggle(
-                    "Skip Empty Workspaces On Switch (previous & next hotkeys)",
-                    isOn: $settings.skipEmptyWorkspacesOnSwitch
-                )
                 Toggle("Keep Unassigned Apps On Workspace Change", isOn: $settings.keepUnassignedAppsOnSwitch)
                 Toggle("Show Hidden Apps On Workspace Activation", isOn: $settings.restoreHiddenAppsOnSwitch)
                     .help("Restores hidden apps, even if they were hidden manually")
@@ -73,6 +85,8 @@ struct WorkspacesSettingsView: View {
                 hotkey("Recent Workspace", for: $settings.switchToRecentWorkspace)
                 hotkey("Previous Workspace", for: $settings.switchToPreviousWorkspace)
                 hotkey("Next Workspace", for: $settings.switchToNextWorkspace)
+                Toggle("Loop Workspaces", isOn: $settings.loopWorkspaces)
+                Toggle("Skip Empty Workspaces On Switch", isOn: $settings.skipEmptyWorkspacesOnSwitch)
                 Text(
                     "These shortcuts allow you to cycle through workspaces on the display where the cursor is currently located."
                 )
@@ -101,9 +115,11 @@ struct WorkspacesSettingsView: View {
                 .foregroundStyle(.secondary)
                 .font(.callout)
             }
+            .hidden(settings.displayMode == .dynamic)
 
             Section("Picture-in-Picture") {
                 Toggle("Enable Picture-in-Picture Support", isOn: $settings.enablePictureInPictureSupport)
+                Toggle("Switch Workspace When Picture-in-Picture Closes", isOn: $settings.switchWorkspaceWhenPipCloses)
 
                 HStack {
                     Text("Screen Corner Offset")

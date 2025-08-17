@@ -26,6 +26,12 @@ final class FocusedWindowTracker {
         self.workspaceManager = workspaceManager
         self.settingsRepository = settingsRepository
         self.pictureInPictureManager = pictureInPictureManager
+
+        DispatchQueue.main.async {
+            guard let activeApp = NSWorkspace.shared.frontmostApplication else { return }
+
+            self.activeApplicationChanged(activeApp, appLaunch: true)
+        }
     }
 
     func startTracking() {
@@ -33,7 +39,7 @@ final class FocusedWindowTracker {
             .publisher(for: NSWorkspace.didActivateApplicationNotification)
             .compactMap { $0.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication }
             .removeDuplicates()
-            .sink { [weak self] app in self?.activeApplicationChanged(app) }
+            .sink { [weak self] app in self?.activeApplicationChanged(app, appLaunch: false) }
             .store(in: &cancellables)
     }
 
@@ -41,7 +47,9 @@ final class FocusedWindowTracker {
         cancellables.removeAll()
     }
 
-    private func activeApplicationChanged(_ app: NSRunningApplication) {
+    private func activeApplicationChanged(_ app: NSRunningApplication, appLaunch: Bool) {
+        guard appLaunch || settingsRepository.workspaceSettings.activeWorkspaceOnFocusChange else { return }
+
         let activeWorkspaces = workspaceManager.activeWorkspace.values
 
         // Skip if the workspace was activated recently
@@ -57,23 +65,33 @@ final class FocusedWindowTracker {
             .first(where: { $0.apps.containsApp(app) }) else { return }
 
         // Skip if the workspace is already active
-        guard !activeWorkspaces.map(\.id).contains(workspace.id) else { return }
+        guard activeWorkspaces.count(where: { $0.id == workspace.id }) < workspace.displays.count else { return }
 
         // Skip if the focused window is in Picture in Picture mode
         guard !settingsRepository.workspaceSettings.enablePictureInPictureSupport ||
             !app.supportsPictureInPicture ||
             app.focusedWindow?.isPictureInPicture(bundleId: app.bundleIdentifier) != true else { return }
 
-        Logger.log("")
-        Logger.log("")
-        Logger.log("Activating workspace for app: \(workspace.name)")
-        workspaceManager.updateLastFocusedApp(app.toMacApp, in: workspace)
-        workspaceManager.activateWorkspace(workspace, setFocus: false)
-        app.activate()
+        let activate = { [self] in
+            Logger.log("")
+            Logger.log("")
+            Logger.log("Activating workspace for app: \(workspace.name)")
+            workspaceManager.updateLastFocusedApp(app.toMacApp, in: workspace)
+            workspaceManager.activateWorkspace(workspace, setFocus: false)
+            app.activate()
 
-        // Restore the app if it was hidden
-        if settingsRepository.workspaceSettings.enablePictureInPictureSupport, app.supportsPictureInPicture {
-            pictureInPictureManager.restoreAppIfNeeded(app: app)
+            // Restore the app if it was hidden
+            if settingsRepository.workspaceSettings.enablePictureInPictureSupport, app.supportsPictureInPicture {
+                pictureInPictureManager.restoreAppIfNeeded(app: app)
+            }
+        }
+
+        if workspace.isDynamic, workspace.displays.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+                activate()
+            }
+        } else {
+            activate()
         }
     }
 }
