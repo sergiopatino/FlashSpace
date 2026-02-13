@@ -12,6 +12,11 @@ import Foundation
 final class WorkspaceRepository: ObservableObject {
     @Published private(set) var workspaces: [Workspace] = []
 
+    var workspacesPublisher: AnyPublisher<[Workspace], Never> {
+        workspacesSubject.eraseToAnyPublisher()
+    }
+
+    private let workspacesSubject = PassthroughSubject<[Workspace], Never>()
     private let profilesRepository: ProfilesRepository
 
     init(profilesRepository: ProfilesRepository) {
@@ -20,14 +25,19 @@ final class WorkspaceRepository: ObservableObject {
 
         profilesRepository.onProfileChange = { [weak self] profile in
             self?.workspaces = profile.workspaces
+            self?.workspacesSubject.send(profile.workspaces)
         }
+    }
+
+    func findWorkspace(with id: WorkspaceID) -> Workspace? {
+        workspaces.first { $0.id == id }
     }
 
     func addWorkspace(name: String) {
         let workspace = Workspace(
             id: .init(),
             name: name,
-            display: NSScreen.main?.localizedName ?? "",
+            display: .current,
             activateShortcut: nil,
             assignAppShortcut: nil,
             apps: []
@@ -38,6 +48,11 @@ final class WorkspaceRepository: ObservableObject {
 
     func addWorkspace(_ workspace: Workspace) {
         workspaces.append(workspace)
+        notifyAboutChanges()
+    }
+
+    func addWorkspaces(contentsOf workspaces: [Workspace]) {
+        self.workspaces.append(contentsOf: workspaces)
         notifyAboutChanges()
     }
 
@@ -116,5 +131,6 @@ final class WorkspaceRepository: ObservableObject {
 
     private func notifyAboutChanges() {
         profilesRepository.updateWorkspaces(workspaces)
+        workspacesSubject.send(workspaces)
     }
 }

@@ -11,12 +11,16 @@ import Foundation
 final class WorkspaceSettings: ObservableObject {
     @Published var displayMode: DisplayMode = .static
 
+    @Published var isPaused = false
     @Published var centerCursorOnWorkspaceChange = false
     @Published var changeWorkspaceOnAppAssign = true
     @Published var activeWorkspaceOnFocusChange = true
+    @Published var autoAssignAppsToWorkspaces = false
+    @Published var autoAssignAlreadyAssignedApps = false
     @Published var skipEmptyWorkspacesOnSwitch = false
     @Published var keepUnassignedAppsOnSwitch = false
     @Published var restoreHiddenAppsOnSwitch = true
+    @Published var showRecentWorkspaceWhenActivatedTwice = false
     @Published var enableWorkspaceTransitions = false
     @Published var workspaceTransitionDuration = 0.3
     @Published var workspaceTransitionDimming = 0.2
@@ -26,8 +30,12 @@ final class WorkspaceSettings: ObservableObject {
     @Published var toggleFocusedAppAssignment: AppHotKey?
     @Published var assignVisibleApps: AppHotKey?
     @Published var hideUnassignedApps: AppHotKey?
+    @Published var showUnassignedApps: AppHotKey?
+    @Published var hideAllApps: AppHotKey?
 
     @Published var loopWorkspaces = true
+    @Published var loopWorkspacesOnAllDisplays = false
+    @Published var switchWorkspaceOnCursorScreen = false
     @Published var switchToRecentWorkspace: AppHotKey?
     @Published var switchToPreviousWorkspace: AppHotKey?
     @Published var switchToNextWorkspace: AppHotKey?
@@ -38,6 +46,7 @@ final class WorkspaceSettings: ObservableObject {
     @Published var switchWorkspaceWhenPipCloses = true
     @Published var pipScreenCornerOffset = 15
     @Published var pipApps: [PipApp] = []
+    @Published var cornerHiddenApps: [CornerHiddenApp] = []
 
     private var observer: AnyCancellable?
     private let updateSubject = PassthroughSubject<(), Never>()
@@ -52,6 +61,14 @@ final class WorkspaceSettings: ObservableObject {
         pipApps.removeAll { $0 == app }
     }
 
+    func addCornerHiddenApp(_ app: CornerHiddenApp) {
+        cornerHiddenApps.append(app)
+    }
+
+    func deleteCornerHiddenApp(_ app: CornerHiddenApp) {
+        cornerHiddenApps.removeAll { $0 == app }
+    }
+
     private func observe() {
         observer = Publishers.MergeMany(
             $displayMode.settingsPublisher(),
@@ -59,10 +76,13 @@ final class WorkspaceSettings: ObservableObject {
             $centerCursorOnWorkspaceChange.settingsPublisher(),
             $changeWorkspaceOnAppAssign.settingsPublisher(),
             $activeWorkspaceOnFocusChange.settingsPublisher(),
+            $autoAssignAppsToWorkspaces.settingsPublisher(),
+            $autoAssignAlreadyAssignedApps.settingsPublisher(),
             $skipEmptyWorkspacesOnSwitch.settingsPublisher(),
             $keepUnassignedAppsOnSwitch.settingsPublisher(),
             $restoreHiddenAppsOnSwitch.settingsPublisher(),
             $enableWorkspaceTransitions.settingsPublisher(),
+            $showRecentWorkspaceWhenActivatedTwice.settingsPublisher(),
             $workspaceTransitionDuration.settingsPublisher(debounce: true),
             $workspaceTransitionDimming.settingsPublisher(debounce: true),
 
@@ -71,8 +91,12 @@ final class WorkspaceSettings: ObservableObject {
             $toggleFocusedAppAssignment.settingsPublisher(),
             $assignVisibleApps.settingsPublisher(),
             $hideUnassignedApps.settingsPublisher(),
+            $showUnassignedApps.settingsPublisher(),
+            $hideAllApps.settingsPublisher(),
 
             $loopWorkspaces.settingsPublisher(),
+            $loopWorkspacesOnAllDisplays.settingsPublisher(),
+            $switchWorkspaceOnCursorScreen.settingsPublisher(),
             $switchToRecentWorkspace.settingsPublisher(),
             $switchToPreviousWorkspace.settingsPublisher(),
             $switchToNextWorkspace.settingsPublisher(),
@@ -81,7 +105,8 @@ final class WorkspaceSettings: ObservableObject {
             $enablePictureInPictureSupport.settingsPublisher(),
             $switchWorkspaceWhenPipCloses.settingsPublisher(),
             $pipApps.settingsPublisher(),
-            $pipScreenCornerOffset.settingsPublisher(debounce: true)
+            $pipScreenCornerOffset.settingsPublisher(debounce: true),
+            $cornerHiddenApps.settingsPublisher()
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] in self?.updateSubject.send() }
@@ -100,10 +125,13 @@ extension WorkspaceSettings: SettingsProtocol {
         centerCursorOnWorkspaceChange = appSettings.centerCursorOnWorkspaceChange ?? false
         changeWorkspaceOnAppAssign = appSettings.changeWorkspaceOnAppAssign ?? true
         activeWorkspaceOnFocusChange = appSettings.activeWorkspaceOnFocusChange ?? true
+        autoAssignAppsToWorkspaces = appSettings.autoAssignAppsToWorkspaces ?? false
+        autoAssignAlreadyAssignedApps = appSettings.autoAssignAlreadyAssignedApps ?? false
         skipEmptyWorkspacesOnSwitch = appSettings.skipEmptyWorkspacesOnSwitch ?? false
         keepUnassignedAppsOnSwitch = appSettings.keepUnassignedAppsOnSwitch ?? false
         restoreHiddenAppsOnSwitch = appSettings.restoreHiddenAppsOnSwitch ?? true
         enableWorkspaceTransitions = appSettings.enableWorkspaceTransitions ?? false
+        showRecentWorkspaceWhenActivatedTwice = appSettings.showRecentWorkspaceWhenActivatedTwice ?? false
         workspaceTransitionDuration = min(appSettings.workspaceTransitionDuration ?? 0.3, 0.5)
         workspaceTransitionDimming = min(appSettings.workspaceTransitionDimming ?? 0.2, 0.5)
 
@@ -112,8 +140,12 @@ extension WorkspaceSettings: SettingsProtocol {
         toggleFocusedAppAssignment = appSettings.toggleFocusedAppAssignment
         assignVisibleApps = appSettings.assignVisibleApps
         hideUnassignedApps = appSettings.hideUnassignedApps
+        showUnassignedApps = appSettings.showUnassignedApps
+        hideAllApps = appSettings.hideAllApps
 
         loopWorkspaces = appSettings.loopWorkspaces ?? true
+        loopWorkspacesOnAllDisplays = appSettings.loopWorkspacesOnAllDisplays ?? false
+        switchWorkspaceOnCursorScreen = appSettings.switchWorkspaceOnCursorScreen ?? false
         switchToRecentWorkspace = appSettings.switchToRecentWorkspace
         switchToPreviousWorkspace = appSettings.switchToPreviousWorkspace
         switchToNextWorkspace = appSettings.switchToNextWorkspace
@@ -123,6 +155,7 @@ extension WorkspaceSettings: SettingsProtocol {
         switchWorkspaceWhenPipCloses = appSettings.switchWorkspaceWhenPipCloses ?? true
         pipApps = appSettings.pipApps ?? []
         pipScreenCornerOffset = appSettings.pipScreenCornerOffset ?? 15
+        cornerHiddenApps = appSettings.cornerHiddenApps ?? []
         observe()
     }
 
@@ -132,10 +165,13 @@ extension WorkspaceSettings: SettingsProtocol {
         appSettings.centerCursorOnWorkspaceChange = centerCursorOnWorkspaceChange
         appSettings.changeWorkspaceOnAppAssign = changeWorkspaceOnAppAssign
         appSettings.activeWorkspaceOnFocusChange = activeWorkspaceOnFocusChange
+        appSettings.autoAssignAppsToWorkspaces = autoAssignAppsToWorkspaces
+        appSettings.autoAssignAlreadyAssignedApps = autoAssignAlreadyAssignedApps
         appSettings.skipEmptyWorkspacesOnSwitch = skipEmptyWorkspacesOnSwitch
         appSettings.keepUnassignedAppsOnSwitch = keepUnassignedAppsOnSwitch
         appSettings.restoreHiddenAppsOnSwitch = restoreHiddenAppsOnSwitch
         appSettings.enableWorkspaceTransitions = enableWorkspaceTransitions
+        appSettings.showRecentWorkspaceWhenActivatedTwice = showRecentWorkspaceWhenActivatedTwice
         appSettings.workspaceTransitionDuration = workspaceTransitionDuration
         appSettings.workspaceTransitionDimming = workspaceTransitionDimming
 
@@ -144,8 +180,12 @@ extension WorkspaceSettings: SettingsProtocol {
         appSettings.toggleFocusedAppAssignment = toggleFocusedAppAssignment
         appSettings.assignVisibleApps = assignVisibleApps
         appSettings.hideUnassignedApps = hideUnassignedApps
+        appSettings.showUnassignedApps = showUnassignedApps
+        appSettings.hideAllApps = hideAllApps
 
         appSettings.loopWorkspaces = loopWorkspaces
+        appSettings.loopWorkspacesOnAllDisplays = loopWorkspacesOnAllDisplays
+        appSettings.switchWorkspaceOnCursorScreen = switchWorkspaceOnCursorScreen
         appSettings.switchToRecentWorkspace = switchToRecentWorkspace
         appSettings.switchToPreviousWorkspace = switchToPreviousWorkspace
         appSettings.switchToNextWorkspace = switchToNextWorkspace
@@ -155,5 +195,6 @@ extension WorkspaceSettings: SettingsProtocol {
         appSettings.switchWorkspaceWhenPipCloses = switchWorkspaceWhenPipCloses
         appSettings.pipApps = pipApps
         appSettings.pipScreenCornerOffset = pipScreenCornerOffset
+        appSettings.cornerHiddenApps = cornerHiddenApps
     }
 }

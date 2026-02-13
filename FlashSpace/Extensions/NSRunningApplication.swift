@@ -26,7 +26,7 @@ extension [NSRunningApplication] {
     }
 
     func excludeFloatingAppsOnDifferentScreen() -> [NSRunningApplication] {
-        let activeWorkspace = AppDependencies.shared.workspaceManager.activeWorkspace[NSScreen.main?.localizedName ?? ""]
+        let activeWorkspace = AppDependencies.shared.workspaceManager.activeWorkspace[.current]
         let floatingApps = AppDependencies.shared.floatingAppsSettings.floatingApps
 
         guard let activeWorkspace else { return self }
@@ -40,6 +40,14 @@ extension [NSRunningApplication] {
         filter { app in
             app.activationPolicy == .regular &&
                 !app.isHidden &&
+                !apps.containsApp(app) &&
+                app.isOnAnyDisplay(displays)
+        }
+    }
+
+    func regularApps(onDisplays displays: Set<DisplayName>, excluding apps: [MacApp]) -> [NSRunningApplication] {
+        filter { app in
+            app.activationPolicy == .regular &&
                 !apps.containsApp(app) &&
                 app.isOnAnyDisplay(displays)
         }

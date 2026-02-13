@@ -19,19 +19,22 @@ final class HotKeysManager {
     private let floatingAppsHotKeys: FloatingAppsHotKeys
     private let focusManager: FocusManager
     private let settingsRepository: SettingsRepository
+    private let profilesRepository: ProfilesRepository
 
     init(
         hotKeysMonitor: HotKeysMonitorProtocol,
         workspaceHotKeys: WorkspaceHotKeys,
         floatingAppsHotKeys: FloatingAppsHotKeys,
         focusManager: FocusManager,
-        settingsRepository: SettingsRepository
+        settingsRepository: SettingsRepository,
+        profilesRepository: ProfilesRepository
     ) {
         self.hotKeysMonitor = hotKeysMonitor
         self.workspaceHotKeys = workspaceHotKeys
         self.floatingAppsHotKeys = floatingAppsHotKeys
         self.focusManager = focusManager
         self.settingsRepository = settingsRepository
+        self.profilesRepository = profilesRepository
 
         observe()
     }
@@ -52,14 +55,27 @@ final class HotKeysManager {
         }
 
         // Workspaces
-        for (shortcut, action) in workspaceHotKeys.getHotKeys().toShortcutPairs() {
+        if !settingsRepository.workspaceSettings.isPaused {
+            for (shortcut, action) in workspaceHotKeys.getHotKeys().toShortcutPairs() {
+                let action = ShortcutAction(shortcut: shortcut) { _ in
+                    action()
+                    return true
+                }
+
+                hotKeysMonitor.addAction(action, forKeyEvent: .down)
+                addShortcut("Workspace", shortcut)
+            }
+        }
+
+        // Profiles
+        for (shortcut, action) in profilesRepository.getHotKeys().toShortcutPairs() {
             let action = ShortcutAction(shortcut: shortcut) { _ in
                 action()
                 return true
             }
 
             hotKeysMonitor.addAction(action, forKeyEvent: .down)
-            addShortcut("Workspace", shortcut)
+            addShortcut("Profile", shortcut)
         }
 
         // Floating Apps
@@ -87,6 +103,16 @@ final class HotKeysManager {
         if let showHotKey = settingsRepository.generalSettings.showFlashSpace?.toShortcut() {
             let action = ShortcutAction(shortcut: showHotKey) { _ in
                 guard !SpaceControl.isVisible else { return true }
+                NotificationCenter.default.post(name: .openMainWindow, object: nil)
+                return true
+            }
+            hotKeysMonitor.addAction(action, forKeyEvent: .down)
+            addShortcut("General", showHotKey)
+        }
+
+        if let toggleHotKey = settingsRepository.generalSettings.toggleFlashSpace?.toShortcut() {
+            let action = ShortcutAction(shortcut: toggleHotKey) { _ in
+                guard !SpaceControl.isVisible else { return true }
 
                 let visibleAppWindows = NSApp.windows
                     .filter(\.isVisible)
@@ -100,7 +126,24 @@ final class HotKeysManager {
                 return true
             }
             hotKeysMonitor.addAction(action, forKeyEvent: .down)
-            addShortcut("General", showHotKey)
+            addShortcut("General", toggleHotKey)
+        }
+
+        if let pauseResumeHotKey = settingsRepository.generalSettings.pauseResumeFlashSpace?.toShortcut() {
+            let action = ShortcutAction(shortcut: pauseResumeHotKey) { _ in
+                AppDependencies.shared.workspaceManager.togglePauseWorkspaceManagement()
+                let isPaused = AppDependencies.shared.workspaceSettings.isPaused
+
+                Toast.showWith(
+                    icon: isPaused ? "pause.circle" : "play.circle",
+                    message: isPaused ? "FlashSpace Paused" : "FlashSpace Resumed",
+                    textColor: isPaused ? .gray : .positive
+                )
+
+                return true
+            }
+            hotKeysMonitor.addAction(action, forKeyEvent: .down)
+            addShortcut("General", pauseResumeHotKey)
         }
 
         // SpaceControl
@@ -131,6 +174,12 @@ final class HotKeysManager {
                 self?.disableAll()
                 self?.enableAll()
             }
+            .store(in: &cancellables)
+
+        settingsRepository.workspaceSettings.$isPaused
+            .dropFirst()
+            .delay(for: .seconds(0.1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
     }
 }

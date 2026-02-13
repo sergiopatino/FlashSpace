@@ -7,6 +7,9 @@ options:
   tabWidth: 4
   groupSortPosition: top
   bundleIdPrefix: pl.wojciechkulik
+  fileTypes:
+    icon:
+      file: true
 
 packages:
   ShortcutRecorder:
@@ -31,6 +34,8 @@ targets:
     platform: macOS
     deploymentTarget: "14.0"
     sources: [FlashSpace]
+    resources:
+      - path: FlashSpace/Resources
     info:
       path: FlashSpace/Info.plist
       properties:
@@ -39,8 +44,9 @@ targets:
 
     settings:
       base:
-        MARKETING_VERSION: 4.4.53
-        CURRENT_PROJECT_VERSION: 53
+        MARKETING_VERSION: 4.14.67
+        CURRENT_PROJECT_VERSION: 67
+        ASSETCATALOG_COMPILER_APPICON_NAME: FlashSpaceIcon
         CODE_SIGN_ENTITLEMENTS: FlashSpace/FlashSpace.entitlements
         DEVELOPMENT_TEAM: "${XCODE_DEVELOPMENT_TEAM}"
         ENABLE_HARDENED_RUNTIME: true
@@ -84,12 +90,17 @@ targets:
     postBuildScripts:
       - name: Build & Copy FlashSpace CLI
         script: |
-          SOURCE_PATH="FlashSpaceCLI/.build/release/flashspace"
+          SOURCE_PATH="FlashSpaceCLI/.build/flashspace"
           DESTINATION_PATH="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/"
 
           if [ ! -e "$SOURCE_PATH" ] || [ "$CONFIGURATION" == "Release" ]; then
             echo "Building FlashSpace CLI"
-            swift build -c release --package-path FlashSpaceCLI
+            swift build --arch x86_64 -c release --package-path FlashSpaceCLI
+            swift build --arch arm64 -c release --package-path FlashSpaceCLI
+            lipo -create \
+              FlashSpaceCLI/.build/arm64-apple-macosx/release/flashspace \
+              FlashSpaceCLI/.build/x86_64-apple-macosx/release/flashspace \
+              -output FlashSpaceCLI/.build/flashspace
           else
             echo "FlashSpace CLI already built"
           fi

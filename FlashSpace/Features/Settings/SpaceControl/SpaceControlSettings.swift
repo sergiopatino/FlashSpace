@@ -14,8 +14,9 @@ final class SpaceControlSettings: ObservableObject {
     @Published var enableSpaceControlAnimations = true
     @Published var enableSpaceControlTilesAnimations = true
     @Published var spaceControlCurrentDisplayWorkspaces = false
+    @Published var spaceControlHideEmptyWorkspaces = false
     @Published var spaceControlUpdateScreenshotsOnOpen = false
-    @Published var spaceControlMaxColumns = 6
+    @Published var spaceControlNumberOfColumns = 0
 
     private var observer: AnyCancellable?
     private let updateSubject = PassthroughSubject<(), Never>()
@@ -29,8 +30,9 @@ final class SpaceControlSettings: ObservableObject {
             $enableSpaceControlAnimations.settingsPublisher(),
             $enableSpaceControlTilesAnimations.settingsPublisher(),
             $spaceControlCurrentDisplayWorkspaces.settingsPublisher(),
+            $spaceControlHideEmptyWorkspaces.settingsPublisher(),
             $spaceControlUpdateScreenshotsOnOpen.settingsPublisher(),
-            $spaceControlMaxColumns.settingsPublisher(debounce: true)
+            $spaceControlNumberOfColumns.settingsPublisher(debounce: true)
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] in self?.updateSubject.send() }
@@ -49,8 +51,9 @@ extension SpaceControlSettings: SettingsProtocol {
         enableSpaceControlAnimations = appSettings.enableSpaceControlAnimations ?? true
         enableSpaceControlTilesAnimations = appSettings.enableSpaceControlTilesAnimations ?? true
         spaceControlCurrentDisplayWorkspaces = appSettings.spaceControlCurrentDisplayWorkspaces ?? false
+        spaceControlHideEmptyWorkspaces = appSettings.spaceControlHideEmptyWorkspaces ?? false
         spaceControlUpdateScreenshotsOnOpen = appSettings.spaceControlUpdateScreenshotsOnOpen ?? false
-        spaceControlMaxColumns = appSettings.spaceControlMaxColumns ?? 6
+        spaceControlNumberOfColumns = appSettings.spaceControlNumberOfColumns ?? 0
         observe()
     }
 
@@ -60,7 +63,8 @@ extension SpaceControlSettings: SettingsProtocol {
         appSettings.enableSpaceControlAnimations = enableSpaceControlAnimations
         appSettings.enableSpaceControlTilesAnimations = enableSpaceControlTilesAnimations
         appSettings.spaceControlCurrentDisplayWorkspaces = spaceControlCurrentDisplayWorkspaces
+        appSettings.spaceControlHideEmptyWorkspaces = spaceControlHideEmptyWorkspaces
         appSettings.spaceControlUpdateScreenshotsOnOpen = spaceControlUpdateScreenshotsOnOpen
-        appSettings.spaceControlMaxColumns = spaceControlMaxColumns
+        appSettings.spaceControlNumberOfColumns = spaceControlNumberOfColumns
     }
 }

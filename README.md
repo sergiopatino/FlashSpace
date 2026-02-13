@@ -1,14 +1,14 @@
-[![GitHub Release](https://img.shields.io/github/v/release/wojciech-kulik/FlashSpace?color=8A2BE2)](https://github.com/wojciech-kulik/FlashSpace/releases)
-[![Homebrew Cask Version](https://img.shields.io/homebrew/cask/v/flashspace)](https://formulae.brew.sh/cask/flashspace)
-[![min macOS](https://img.shields.io/badge/macOS-14.0+-silver)](#)
-[![CI Status](https://img.shields.io/github/actions/workflow/status/wojciech-kulik/FlashSpace/xcode-build-check.yml)](https://github.com/wojciech-kulik/FlashSpace/actions/workflows/xcode-build-check.yml)
+[![Homebrew](https://img.shields.io/homebrew/cask/v/flashspace?color=FBB03F&logo=homebrew&label=homebrew)](https://formulae.brew.sh/cask/flashspace)
+[![GitHub Release](https://img.shields.io/github/v/release/wojciech-kulik/FlashSpace?logo=github)](https://github.com/wojciech-kulik/FlashSpace/releases)
+[![min macOS](https://img.shields.io/badge/macOS-14.0+-silver?logo=apple)](#)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/wojciech-kulik/FlashSpace/xcode-build-check.yml?logo=githubactions&logoColor=white)](https://github.com/wojciech-kulik/FlashSpace/actions/workflows/xcode-build-check.yml)
 
 # ⚡ FlashSpace
 
 FlashSpace is a blazingly-fast virtual workspace manager for macOS, designed to
 enhance and replace native macOS Spaces. No more waiting for macOS animations.
 
-<img width="797" alt="FlashSpace" src="https://github.com/user-attachments/assets/94e8bc2d-f7b3-47b5-94b9-865a192c951b" />
+<img width="806" height="582" alt="FlashSpace" src="https://github.com/user-attachments/assets/8e75e0f5-8f31-44db-9e52-20fdc4c1dec4" />
 
 ## ⚙️ Installation
 
@@ -96,7 +96,7 @@ Space Control allows you to preview all workspaces on a grid and switch between 
 
 Use 0-9 and arrow keys to switch between workspaces.
 
-https://github.com/user-attachments/assets/1fdf6bbf-5d17-4c1c-9a28-ef82bd427575
+https://github.com/user-attachments/assets/4c801433-2c70-4cb9-85d8-ff75dbbfab7e
 
 ## 🪟 Focus Manager
 
@@ -118,7 +118,10 @@ PiP window.
 
 If the PiP window is not visible, the standard behavior is applied.
 
-Supported browsers: Safari, Zen Browser, Chrome, Firefox, Brave, Vivaldi, Arc, Opera.
+Supported browsers: Safari, Zen Browser, Chrome, Firefox, Brave, Vivaldi, Arc, Dia, Opera, Microsoft Edge, Comet.
+
+**Please note that this feature may not work if your browser language is not set to
+English.**
 
 ## 🖥️ Display Assignment Modes
 
@@ -338,6 +341,7 @@ Big thanks to all the sponsors who support this project 🍻!
 <a href="https://github.com/bjrmatos"><img src="https://avatars.githubusercontent.com/u/4262050" width="40" height="40" alt="@bjrmatos" title="bjrmatos"></a>
 <a href="https://github.com/notlus"><img src="https://avatars.githubusercontent.com/u/828989" width="40" height="40" alt="@notlus" title="notlus"></a>
 <a href="https://github.com/Cyberax"><img src="https://avatars.githubusercontent.com/u/1136550" width="40" height="40" alt="@Cyberax" title="Cyberax"></a>
+<a href="https://github.com/dosboxd"><img src="https://avatars.githubusercontent.com/u/16291547" width="40" height="40" alt="@dosboxd" title="dosboxd"></a>
 
 ### One Time Sponsors
 
@@ -350,10 +354,20 @@ Big thanks to all the sponsors who support this project 🍻!
 <a href="https://github.com/exsesx"><img src="https://avatars.githubusercontent.com/u/20399517" width="40" height="40" alt="@exsesx" title="exsesx"></a>
 <a href="https://github.com/konpa"><img src="https://avatars.githubusercontent.com/u/778731" width="40" height="40" alt="@konpa" title="konpa"></a>
 <a href="https://github.com/nbargnesi"><img src="https://avatars.githubusercontent.com/u/1265294" width="40" height="40" alt="@nbargnesi" title="nbargnesi"></a>
+<a href="https://github.com/bchopson"><img src="https://avatars.githubusercontent.com/u/14081421" width="40" height="40" alt="@bchopson" title="bchopson"></a>
+<a href="https://github.com/NextMerge"><img src="https://avatars.githubusercontent.com/u/178944810" width="40" height="40" alt="@NextMerge" title="NextMerge"></a>
 
 ### Past Monthly Sponsors
 
 <a href="https://github.com/frankroeder"><img src="https://avatars.githubusercontent.com/u/19746932" width="40" height="40" alt="@frankroeder" title="frankroeder"></a>
+<a href="https://github.com/aayio"><img src="https://avatars.githubusercontent.com/u/41933025" width="40" height="40" alt="@aayio" title="aayio"></a>
+
+## 🤓 My Other Projects
+
+- [Snippety](https://snippety.app) - Snippets manager for macOS & iOS
+- [xcodebuild.nvim](https://github.com/wojciech-kulik/xcodebuild.nvim) - Neovim plugin
+- [Smog Poland](https://smog-polska.pl) - Air quality monitoring app for Poland
+- [XcodeProjectCLI] - Open Source CLI tool to manage Xcode project
 
 &nbsp;
 
@@ -361,3 +375,4 @@ Big thanks to all the sponsors who support this project 🍻!
 [XcodeGen]: https://github.com/yonaskolb/XcodeGen
 [Releases Page]: https://github.com/wojciech-kulik/FlashSpace/releases
 [SKHD]: https://github.com/koekeishiya/skhd
+[XcodeProjectCLI]: https://github.com/wojciech-kulik/XcodeProjectCLI

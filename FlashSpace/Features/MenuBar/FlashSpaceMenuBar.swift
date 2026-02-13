@@ -15,9 +15,23 @@ struct FlashSpaceMenuBar: Scene {
     @StateObject private var profilesRepository = AppDependencies.shared.profilesRepository
     @StateObject private var workspaceRepository = AppDependencies.shared.workspaceRepository
 
+    @State var menuBarId = UUID()
+
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: .constant(true)) {
             Text("FlashSpace v\(AppConstants.version)")
+
+            Button(settingsRepository.workspaceSettings.isPaused ? "Resume" : "Pause") {
+                workspaceManager.togglePauseWorkspaceManagement()
+                menuBarId = UUID()
+            }
+            .keyboardShortcut(settingsRepository.generalSettings.pauseResumeFlashSpace?.toKeyboardShortcut)
+            .id(menuBarId)
+            .onReceive(settingsRepository.workspaceSettings.$isPaused) { _ in
+                menuBarId = UUID()
+            }
+
+            Divider()
 
             Button("Open") {
                 openWindow(id: "main")
@@ -54,7 +68,8 @@ struct FlashSpaceMenuBar: Scene {
             Menu("Workspaces") {
                 ForEach(workspaceRepository.workspaces) { workspace in
                     Button {
-                        if workspace.isDynamic, workspace.displays.isEmpty {
+                        if workspace.isDynamic, workspace.displays.isEmpty,
+                           workspace.apps.isEmpty || workspace.openAppsOnActivation != true {
                             Toast.showWith(
                                 icon: "square.stack.3d.up",
                                 message: "\(workspace.name) - No Running Apps To Show",
@@ -73,13 +88,19 @@ struct FlashSpaceMenuBar: Scene {
             Divider()
 
             Button("Donate") {
-                if let url = URL(string: "https://github.com/sponsors/wojciech-kulik") {
-                    NSWorkspace.shared.open(url)
-                }
+                SettingsNavigationManager.shared.selectedTab = "Donate"
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
             }
 
             Button("Project Website") {
                 if let url = URL(string: "https://github.com/wojciech-kulik/FlashSpace") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+
+            Button("Release Notes") {
+                if let url = URL(string: "https://github.com/wojciech-kulik/FlashSpace/releases") {
                     NSWorkspace.shared.open(url)
                 }
             }

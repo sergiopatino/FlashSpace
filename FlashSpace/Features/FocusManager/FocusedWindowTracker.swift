@@ -27,19 +27,30 @@ final class FocusedWindowTracker {
         self.settingsRepository = settingsRepository
         self.pictureInPictureManager = pictureInPictureManager
 
-        DispatchQueue.main.async {
-            guard let activeApp = NSWorkspace.shared.frontmostApplication else { return }
-
-            self.activeApplicationChanged(activeApp, appLaunch: true)
-        }
+        activateWorkspaceForFocusedApp(force: true)
     }
 
     func startTracking() {
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.didActivateApplicationNotification)
             .compactMap { $0.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication }
+            .filter { $0.activationPolicy == .regular }
             .removeDuplicates()
-            .sink { [weak self] app in self?.activeApplicationChanged(app, appLaunch: false) }
+            .sink { [weak self] app in
+                self?.activeApplicationChanged(app, force: false)
+                self?.autoAssignAppToWorkspaceIfNeeded(app)
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default
+            .publisher(for: .profileChanged)
+            .sink { [weak self] _ in self?.activateWorkspaceForFocusedApp() }
+            .store(in: &cancellables)
+
+        NotificationCenter.default
+            .publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .delay(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.activateWorkspaceForFocusedApp(force: true) }
             .store(in: &cancellables)
     }
 
@@ -47,8 +58,20 @@ final class FocusedWindowTracker {
         cancellables.removeAll()
     }
 
-    private func activeApplicationChanged(_ app: NSRunningApplication, appLaunch: Bool) {
-        guard appLaunch || settingsRepository.workspaceSettings.activeWorkspaceOnFocusChange else { return }
+    private func activateWorkspaceForFocusedApp(force: Bool = false) {
+        DispatchQueue.main.async {
+            guard let activeApp = NSWorkspace.shared.frontmostApplication else { return }
+
+            self.activeApplicationChanged(activeApp, force: force)
+        }
+    }
+
+    private func activeApplicationChanged(_ app: NSRunningApplication, force: Bool) {
+        let workspaceSettings = settingsRepository.workspaceSettings
+        let shouldActivate = workspaceSettings.activeWorkspaceOnFocusChange &&
+            (!workspaceSettings.autoAssignAppsToWorkspaces || !workspaceSettings.autoAssignAlreadyAssignedApps)
+
+        guard force || shouldActivate else { return }
 
         let activeWorkspaces = workspaceManager.activeWorkspace.values
 
@@ -68,7 +91,7 @@ final class FocusedWindowTracker {
         guard activeWorkspaces.count(where: { $0.id == workspace.id }) < workspace.displays.count else { return }
 
         // Skip if the focused window is in Picture in Picture mode
-        guard !settingsRepository.workspaceSettings.enablePictureInPictureSupport ||
+        guard !workspaceSettings.enablePictureInPictureSupport ||
             !app.supportsPictureInPicture ||
             app.focusedWindow?.isPictureInPicture(bundleId: app.bundleIdentifier) != true else { return }
 
@@ -81,7 +104,7 @@ final class FocusedWindowTracker {
             app.activate()
 
             // Restore the app if it was hidden
-            if settingsRepository.workspaceSettings.enablePictureInPictureSupport, app.supportsPictureInPicture {
+            if workspaceSettings.enablePictureInPictureSupport, app.supportsPictureInPicture {
                 pictureInPictureManager.restoreAppIfNeeded(app: app)
             }
         }
@@ -92,6 +115,28 @@ final class FocusedWindowTracker {
             }
         } else {
             activate()
+        }
+    }
+
+    private func autoAssignAppToWorkspaceIfNeeded(_ app: NSRunningApplication) {
+        guard settingsRepository.workspaceSettings.autoAssignAppsToWorkspaces else { return }
+
+        // Skip if the app is floating
+        guard !settingsRepository.floatingAppsSettings.floatingApps.containsApp(app) else { return }
+
+        // Skip if the app is already assigned to a workspace
+        guard settingsRepository.workspaceSettings.autoAssignAlreadyAssignedApps ||
+            !workspaceRepository.workspaces.contains(where: { $0.apps.containsApp(app) }) else { return }
+
+        // Assign the app to the active workspace on the same display, or to the first active workspace if there is no active
+        // workspace on the same display
+        let display = DisplayName.current
+        let activeWorkspaces = workspaceManager.activeWorkspace.values
+        let activeWorkspace = activeWorkspaces.first { $0.displays.contains(display) }
+            ?? activeWorkspaces.first
+
+        if let activeWorkspace {
+            workspaceManager.assignApp(app.toMacApp, to: activeWorkspace)
         }
     }
 }

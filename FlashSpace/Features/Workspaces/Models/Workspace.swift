@@ -20,6 +20,7 @@ struct Workspace: Identifiable, Codable, Hashable {
         case apps
         case appToFocus
         case symbolIconName
+        case openAppsOnActivation
     }
 
     var id: WorkspaceID
@@ -30,20 +31,21 @@ struct Workspace: Identifiable, Codable, Hashable {
     var apps: [MacApp]
     var appToFocus: MacApp?
     var symbolIconName: String?
+    var openAppsOnActivation: Bool?
 }
 
 extension Workspace {
     var displays: Set<DisplayName> {
         if NSScreen.screens.count == 1 {
-            return [NSScreen.main?.localizedName ?? ""]
+            return [.current]
         } else if isDynamic {
             // TODO: After disconnecting a display, the detection may not work correctly.
             // The app will have the old coordinates until it is shown again, which
             // prevents from detecting the correct display.
             //
             // The workaround is to activate the app manually to update its frame.
-            return NSWorkspace.shared.runningApplications
-                .filter { $0.activationPolicy == .regular && apps.containsApp($0) }
+            return NSWorkspace.shared.runningRegularApps
+                .filter { apps.containsApp($0) }
                 .flatMap(\.allDisplays)
                 .asSet
         } else {
@@ -53,7 +55,7 @@ extension Workspace {
 
     var displayForPrint: DisplayName {
         if isDynamic,
-           let mainDisplay = NSScreen.main?.localizedName,
+           let mainDisplay = DisplayName.currentOptional,
            displays.contains(mainDisplay) {
             return mainDisplay
         }
@@ -64,7 +66,7 @@ extension Workspace {
     }
 
     var isOnTheCurrentScreen: Bool {
-        guard let currentScreen = NSScreen.main?.localizedName else { return false }
+        guard let currentScreen = DisplayName.currentOptional else { return false }
         return displays.contains(currentScreen)
     }
 
@@ -74,5 +76,17 @@ extension Workspace {
 
     private var displayManager: DisplayManager {
         AppDependencies.shared.displayManager
+    }
+}
+
+extension [Workspace] {
+    func skipWithoutRunningApps() -> [Workspace] {
+        let runningBundleIds = NSWorkspace.shared.runningRegularApps
+            .compactMap(\.bundleIdentifier)
+            .asSet
+
+        return filter {
+            $0.apps.contains { runningBundleIds.contains($0.bundleIdentifier) }
+        }
     }
 }

@@ -57,20 +57,36 @@ struct SpaceControlSettingsView: View {
                         isOn: $settings.spaceControlCurrentDisplayWorkspaces
                     )
                     Toggle(
+                        "Hide Empty Workspaces",
+                        isOn: $settings.spaceControlHideEmptyWorkspaces
+                    )
+                    Toggle(
                         "Update Screenshots On Open (slower)",
                         isOn: $settings.spaceControlUpdateScreenshotsOnOpen
                     )
 
-                    HStack {
-                        Text("Max Number Of Columns")
-                        Spacer()
-                        Text("\(settings.spaceControlMaxColumns)")
-                        Stepper(
-                            "",
-                            value: $settings.spaceControlMaxColumns,
-                            in: 2...20,
-                            step: 1
-                        ).labelsHidden()
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Number Of Columns")
+                            Spacer()
+                            Text(settings.spaceControlNumberOfColumns > 0
+                                ? "\(settings.spaceControlNumberOfColumns)"
+                                : "Auto"
+                            )
+                            Stepper(
+                                "",
+                                value: $settings.spaceControlNumberOfColumns,
+                                in: 0...7,
+                                step: 1
+                            )
+                            .labelsHidden()
+                        }
+
+                        Text(
+                            "This setting will be ignored if it results in more than 6 rows of workspaces."
+                        )
+                        .foregroundColor(.secondary)
+                        .font(.callout)
                     }
                 }
             }

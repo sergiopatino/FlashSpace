@@ -11,13 +11,22 @@ enum Integrations {
     private static let settings = AppDependencies.shared.integrationsSettings
     private static let profilesRepository = AppDependencies.shared.profilesRepository
 
+    static func runAfterActivationIfNeeded(workspace: ActiveWorkspace) {
+        let script = settings.runScriptAfterWorkspaceChange.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "$WORKSPACE_NUMBER", with: workspace.number ?? "")
+            .replacingOccurrences(of: "$WORKSPACE", with: workspace.name)
+            .replacingOccurrences(of: "$DISPLAY", with: workspace.display)
+            .replacingOccurrences(of: "$PROFILE", with: profilesRepository.selectedProfile.name)
+        runScript(script, synchronous: true)
+    }
+
     static func runOnActivateIfNeeded(workspace: ActiveWorkspace) {
         let script = settings.runScriptOnWorkspaceChange.trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: "$WORKSPACE_NUMBER", with: workspace.number ?? "")
             .replacingOccurrences(of: "$WORKSPACE", with: workspace.name)
             .replacingOccurrences(of: "$DISPLAY", with: workspace.display)
             .replacingOccurrences(of: "$PROFILE", with: profilesRepository.selectedProfile.name)
-        runScript(script)
+        runScript(script, synchronous: true)
     }
 
     static func runOnAppLaunchIfNeeded() {
@@ -32,7 +41,7 @@ enum Integrations {
         runScript(script)
     }
 
-    private static func runScript(_ script: String) {
+    private static func runScript(_ script: String, synchronous: Bool = false) {
         guard settings.enableIntegrations, !script.isEmpty else { return }
 
         let shell = getDefaultShell() ?? "/bin/sh"
@@ -40,6 +49,10 @@ enum Integrations {
         task.launchPath = shell
         task.arguments = ["-c", script]
         task.launch()
+
+        if synchronous {
+            task.waitUntilExit()
+        }
     }
 
     private static func getDefaultShell() -> String? {

@@ -30,7 +30,9 @@ final class WorkspaceHotKeys {
             getAssignAppHotKey(for: nil),
             getUnassignAppHotKey(),
             getToggleAssignmentHotKey(),
+            getShowUnassignedAppsHotKey(),
             getHideUnassignedAppsHotKey(),
+            getHideAllAppsHotKey(),
             getRecentWorkspaceHotKey(),
             getCycleWorkspacesHotKey(next: false),
             getCycleWorkspacesHotKey(next: true)
@@ -45,10 +47,17 @@ final class WorkspaceHotKeys {
         guard let shortcut = workspace.activateShortcut else { return nil }
 
         let action = { [weak self] in
-            guard let self, let updatedWorkspace = workspaceRepository.workspaces
-                .first(where: { $0.id == workspace.id }) else { return }
+            guard let self, let updatedWorkspace = workspaceRepository.findWorkspace(with: workspace.id) else { return }
 
-            if updatedWorkspace.isDynamic, updatedWorkspace.displays.isEmpty {
+            if workspaceSettings.showRecentWorkspaceWhenActivatedTwice,
+               let display = DisplayName.currentOptional,
+               workspaceManager.activeWorkspace[display]?.id == updatedWorkspace.id,
+               let recentWorkspace = workspaceManager.mostRecentWorkspace[display] {
+                return workspaceManager.activateWorkspace(recentWorkspace, setFocus: true)
+            }
+
+            if updatedWorkspace.isDynamic, updatedWorkspace.displays.isEmpty,
+               workspace.apps.isEmpty || updatedWorkspace.openAppsOnActivation != true {
                 Toast.showWith(
                     icon: "square.stack.3d.up",
                     message: "\(workspace.name) - No Running Apps To Show",
@@ -101,6 +110,18 @@ final class WorkspaceHotKeys {
         return (shortcut, action)
     }
 
+    private func getShowUnassignedAppsHotKey() -> (AppHotKey, () -> ())? {
+        guard let shortcut = workspaceSettings.showUnassignedApps else { return nil }
+
+        let action = { [weak self] in
+            guard let self else { return }
+
+            workspaceManager.showUnassignedApps()
+        }
+
+        return (shortcut, action)
+    }
+
     private func getHideUnassignedAppsHotKey() -> (AppHotKey, () -> ())? {
         guard let shortcut = workspaceSettings.hideUnassignedApps else { return nil }
 
@@ -108,6 +129,18 @@ final class WorkspaceHotKeys {
             guard let self else { return }
 
             workspaceManager.hideUnassignedApps()
+        }
+
+        return (shortcut, action)
+    }
+
+    private func getHideAllAppsHotKey() -> (AppHotKey, () -> ())? {
+        guard let shortcut = workspaceSettings.hideAllApps else { return nil }
+
+        let action = { [weak self] in
+            guard let self else { return }
+
+            workspaceManager.hideAll()
         }
 
         return (shortcut, action)
@@ -163,8 +196,7 @@ extension WorkspaceHotKeys {
             return
         }
 
-        guard let updatedWorkspace = workspaceRepository.workspaces
-            .first(where: { $0.id == workspace.id }) else { return }
+        guard let updatedWorkspace = workspaceRepository.findWorkspace(with: workspace.id) else { return }
 
         workspaceManager.assignApp(activeApp.toMacApp, to: updatedWorkspace)
 
@@ -180,7 +212,7 @@ extension WorkspaceHotKeys {
     }
 
     private func assignVisibleApps() {
-        guard let display = NSScreen.main?.localizedName else { return }
+        guard let display = DisplayName.currentOptional else { return }
         guard let workspace = workspaceManager.activeWorkspace[display] else {
             Alert.showOkAlert(
                 title: "Error",

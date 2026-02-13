@@ -27,12 +27,7 @@ final class SpaceControlViewModel: ObservableObject {
     @Published private(set) var tileSize: CGSize = .zero
 
     var wallpaperImage: NSImage? {
-        if let screen = NSScreen.main,
-           let wallpaperURL = NSWorkspace.shared.desktopImageURL(for: screen) {
-            return NSImage(contentsOf: wallpaperURL)
-        }
-
-        return nil
+        wallpaperService.getWallpaper()
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -42,6 +37,7 @@ final class SpaceControlViewModel: ObservableObject {
     private let workspaceManager = AppDependencies.shared.workspaceManager
     private let screenshotManager = AppDependencies.shared.workspaceScreenshotManager
     private let displayManager = AppDependencies.shared.displayManager
+    private let wallpaperService = AppDependencies.shared.wallpaperService
 
     init() {
         refresh()
@@ -61,12 +57,18 @@ final class SpaceControlViewModel: ObservableObject {
 
     func refresh() {
         let activeWorkspaceIds = workspaceManager.activeWorkspace.map(\.value.id).asSet
-        let mainDisplay = NSScreen.main?.localizedName ?? ""
+        let mainDisplay = DisplayName.current
+
+        var sourceWorkspaces = workspaceRepository.workspaces
+            .filter { !settings.spaceControlCurrentDisplayWorkspaces || $0.isOnTheCurrentScreen }
+
+        if settings.spaceControlHideEmptyWorkspaces {
+            sourceWorkspaces = sourceWorkspaces.skipWithoutRunningApps()
+        }
 
         workspaces = Array(
-            workspaceRepository.workspaces
-                .filter { !settings.spaceControlCurrentDisplayWorkspaces || $0.isOnTheCurrentScreen }
-                .prefix(15)
+            sourceWorkspaces
+                .prefix(35)
                 .enumerated()
                 .map {
                     let workspace = $0.element
@@ -100,14 +102,36 @@ final class SpaceControlViewModel: ObservableObject {
     }
 
     private func calculateColsAndRows(_ workspaceCount: Int) {
-        let maxNumberOfRows = 3.0
+        let calculateRows = { (columns: Int) -> Int in
+            Int(ceil(Double(workspaceCount) / Double(columns)))
+        }
 
-        numberOfColumns = workspaceCount <= 3
-            ? workspaceCount
-            : max(3, Int(ceil(Double(workspaceCount) / maxNumberOfRows)))
-        numberOfColumns = min(numberOfColumns, settings.spaceControlMaxColumns)
+        if settings.spaceControlNumberOfColumns > 0 {
+            numberOfColumns = min(settings.spaceControlNumberOfColumns, workspaceCount)
+            numberOfRows = calculateRows(numberOfColumns)
 
-        numberOfRows = Int(ceil(Double(workspaceCount) / Double(numberOfColumns)))
+            if numberOfRows > 6 {
+                numberOfColumns = Int(ceil(Double(workspaceCount) / 6.0))
+                numberOfRows = calculateRows(numberOfColumns)
+            }
+
+            return
+        }
+
+        let initialNumberOfColumns = 4
+        let maxRows = 4
+        let maxColumns = 7
+
+        var numberOfColumns = min(initialNumberOfColumns, workspaceCount)
+        var numberOfRows = calculateRows(numberOfColumns)
+
+        while numberOfRows > maxRows, numberOfColumns < maxColumns {
+            numberOfColumns += 1
+            numberOfRows = calculateRows(numberOfColumns)
+        }
+
+        self.numberOfColumns = numberOfColumns
+        self.numberOfRows = numberOfRows
     }
 
     private func calculateTileSize() {
@@ -116,13 +140,22 @@ final class SpaceControlViewModel: ObservableObject {
         let width = screenFrame.width / CGFloat(numberOfColumns) - 120.0
         let height = screenFrame.height / CGFloat(numberOfRows) - 120.0
 
+        guard workspaces.count > 1 else {
+            tileSize = CGSize(width: width / 2.0, height: height / 2.0)
+            return
+        }
+
         let firstScreenshot = workspaces
             .lazy
             .compactMap { $0.screenshotData.flatMap(NSImage.init(data:)) }
             .first
 
         guard let firstScreenshot else {
-            tileSize = CGSize(width: width, height: min(height, width * 10.0 / 16.0))
+            let scale = screenFrame.width / screenFrame.height
+            tileSize = CGSize(
+                width: min(width, height * scale),
+                height: min(height, width / scale)
+            )
             return
         }
 

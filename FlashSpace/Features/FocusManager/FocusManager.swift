@@ -10,8 +10,7 @@ import Foundation
 
 final class FocusManager {
     var visibleApps: [NSRunningApplication] {
-        NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && !$0.isHidden }
+        NSWorkspace.shared.runningRegularApps.filter { !$0.isHidden }
     }
 
     var focusedApp: NSRunningApplication? { NSWorkspace.shared.frontmostApplication }
@@ -209,7 +208,7 @@ final class FocusManager {
     private func getFocusedAppIndex() -> (Int, [MacApp])? {
         guard let focusedApp else { return nil }
 
-        let workspace = workspaceManager.activeWorkspace[NSScreen.main?.localizedName ?? ""]
+        let workspace = workspaceManager.activeWorkspace[.current]
             ?? workspaceRepository.workspaces.first { $0.apps.containsApp(focusedApp) }
 
         guard let workspace else { return nil }

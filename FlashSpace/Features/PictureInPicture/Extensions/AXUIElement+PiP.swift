@@ -13,24 +13,44 @@ extension AXUIElement {
     }
 
     func isPictureInPicture(bundleId: String?) -> Bool {
-        if let browser = PipBrowser(rawValue: bundleId ?? "") {
+        let browser = PipBrowser(rawValue: bundleId ?? "")
+        let googleMeetApp = PipGoogleMeet(rawValue: bundleId ?? "")
+        let windowTitle = title
+
+        if let browser {
             if let partialTitle = browser.partialTitle,
                title?.contains(partialTitle) == true {
                 return true
             }
 
-            if let pipWindowTitle = browser.title {
-                return title == pipWindowTitle
-            } else if let pipWindowSubrole = browser.subrole {
-                return subrole == pipWindowSubrole
+            if let pipWindowTitle = browser.title, windowTitle == pipWindowTitle {
+                return true
             }
-        } else if let pipApp = pipApps.first(where: { $0.bundleIdentifier == bundleId }) {
-            let result = title?.range(
+
+            if let pipWindowSubrole = browser.subrole, subrole == pipWindowSubrole {
+                return true
+            }
+        }
+
+        if let googleMeetApp {
+            let titleMatch = googleMeetApp.titlePattern == nil ||
+                windowTitle?.matches(googleMeetApp.titlePattern ?? "") == true
+
+            let documentMatch = googleMeetApp.document == nil ||
+                googleMeetApp.document == document
+
+            if titleMatch, documentMatch {
+                return true
+            }
+        }
+
+        for pipApp in pipApps.filter({ $0.bundleIdentifier == bundleId }) {
+            let result = windowTitle?.range(
                 of: pipApp.pipWindowTitleRegex,
                 options: .regularExpression
             ) != nil
 
-            return result
+            if result { return true }
         }
 
         return false

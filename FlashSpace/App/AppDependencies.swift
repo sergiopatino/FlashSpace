@@ -17,6 +17,7 @@ struct AppDependencies {
     let workspaceScreenshotManager: WorkspaceScreenshotManager
     let workspaceTransitionManager: WorkspaceTransitionManager
     let pictureInPictureManager: PictureInPictureManager
+    let wallpaperService = WallpaperService()
 
     let floatingAppsHotKeys: FloatingAppsHotKeys
 
@@ -35,6 +36,7 @@ struct AppDependencies {
     let floatingAppsSettings = FloatingAppsSettings()
     let spaceControlSettings = SpaceControlSettings()
     let integrationsSettings = IntegrationsSettings()
+    let profileSettings = ProfileSettings()
 
     let profilesRepository: ProfilesRepository
     let autostartService = AutostartService()
@@ -50,7 +52,8 @@ struct AppDependencies {
             workspaceSettings: workspaceSettings,
             floatingAppsSettings: floatingAppsSettings,
             spaceControlSettings: spaceControlSettings,
-            integrationsSettings: integrationsSettings
+            integrationsSettings: integrationsSettings,
+            profileSettings: profileSettings
         )
         self.displayManager = DisplayManager(settingsRepository: settingsRepository)
         self.workspaceTransitionManager = WorkspaceTransitionManager(
@@ -91,7 +94,8 @@ struct AppDependencies {
             workspaceHotKeys: workspaceHotKeys,
             floatingAppsHotKeys: floatingAppsHotKeys,
             focusManager: focusManager,
-            settingsRepository: settingsRepository
+            settingsRepository: settingsRepository,
+            profilesRepository: profilesRepository
         )
         self.focusedWindowTracker = FocusedWindowTracker(
             workspaceRepository: workspaceRepository,

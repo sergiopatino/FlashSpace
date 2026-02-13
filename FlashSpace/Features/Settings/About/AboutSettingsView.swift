@@ -15,6 +15,7 @@ struct AboutSettingsView: View {
                     Text("Version \(AppConstants.version)")
                     Spacer()
                     Button("GitHub") { openGitHub("wojciech-kulik/FlashSpace") }
+                    Button("Release Notes") { openUrl("https://github.com/wojciech-kulik/FlashSpace/releases") }
                     Button("Check for Updates") { UpdatesManager.shared.checkForUpdates() }
                 }
             }
@@ -44,6 +45,16 @@ struct AboutSettingsView: View {
                     Text("Moritz Brödel (@brodmo)")
                     Spacer()
                     Button("GitHub") { openGitHub("brodmo") }
+                }
+                HStack {
+                    Text("Mattia Cerutti (@mattiacerutti)")
+                    Spacer()
+                    Button("GitHub") { openGitHub("mattiacerutti") }
+                }
+                HStack {
+                    Text("Peter (@peterneutron)")
+                    Spacer()
+                    Button("GitHub") { openGitHub("peterneutron") }
                 }
             }
         }

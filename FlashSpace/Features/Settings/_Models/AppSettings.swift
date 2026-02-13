@@ -9,7 +9,9 @@ struct AppSettings: Codable {
     // General
     var checkForUpdatesAutomatically: Bool?
     var showFlashSpace: AppHotKey?
+    var toggleFlashSpace: AppHotKey?
     var showFloatingNotifications: Bool?
+    var pauseResumeFlashSpace: AppHotKey?
 
     // Menu Bar
     var showMenuBarTitle: Bool?
@@ -48,27 +50,35 @@ struct AppSettings: Codable {
     var centerCursorOnWorkspaceChange: Bool?
     var changeWorkspaceOnAppAssign: Bool?
     var activeWorkspaceOnFocusChange: Bool?
+    var autoAssignAppsToWorkspaces: Bool?
+    var autoAssignAlreadyAssignedApps: Bool?
     var skipEmptyWorkspacesOnSwitch: Bool?
     var keepUnassignedAppsOnSwitch: Bool?
     var restoreHiddenAppsOnSwitch: Bool?
     var enableWorkspaceTransitions: Bool?
+    var showRecentWorkspaceWhenActivatedTwice: Bool?
     var workspaceTransitionDuration: Double?
     var workspaceTransitionDimming: Double?
 
     var loopWorkspaces: Bool?
+    var loopWorkspacesOnAllDisplays: Bool?
+    var switchWorkspaceOnCursorScreen: Bool?
     var switchToPreviousWorkspace: AppHotKey?
     var switchToNextWorkspace: AppHotKey?
     var switchToRecentWorkspace: AppHotKey?
     var assignFocusedApp: AppHotKey?
     var unassignFocusedApp: AppHotKey?
+    var showUnassignedApps: AppHotKey?
     var toggleFocusedAppAssignment: AppHotKey?
     var assignVisibleApps: AppHotKey?
     var hideUnassignedApps: AppHotKey?
+    var hideAllApps: AppHotKey?
     var alternativeDisplays: String?
     var enablePictureInPictureSupport: Bool?
     var switchWorkspaceWhenPipCloses: Bool?
     var pipApps: [PipApp]?
     var pipScreenCornerOffset: Int?
+    var cornerHiddenApps: [CornerHiddenApp]?
 
     // Floating apps
     var floatingApps: [MacApp]?
@@ -82,12 +92,18 @@ struct AppSettings: Codable {
     var enableSpaceControlAnimations: Bool?
     var enableSpaceControlTilesAnimations: Bool?
     var spaceControlCurrentDisplayWorkspaces: Bool?
+    var spaceControlHideEmptyWorkspaces: Bool?
     var spaceControlUpdateScreenshotsOnOpen: Bool?
-    var spaceControlMaxColumns: Int?
+    var spaceControlNumberOfColumns: Int?
 
     // Integrations
     var enableIntegrations: Bool?
     var runScriptOnLaunch: String?
     var runScriptOnWorkspaceChange: String?
+    var runScriptAfterWorkspaceChange: String?
     var runScriptOnProfileChange: String?
+
+    // Profiles
+    var switchToNextProfile: AppHotKey?
+    var switchToPreviousProfile: AppHotKey?
 }

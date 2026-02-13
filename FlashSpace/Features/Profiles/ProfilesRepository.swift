@@ -34,6 +34,7 @@ final class ProfilesRepository: ObservableObject {
     }
 
     private var shouldTrackProfileChange = true
+    private lazy var settings = AppDependencies.shared.profileSettings
 
     init() {
         loadFromDisk()
@@ -143,6 +144,34 @@ extension ProfilesRepository {
         }
     }
 
+    func activateNextProfile() {
+        guard let currentIndex = profiles.firstIndex(where: { $0.id == selectedProfile.id }) else { return }
+
+        let nextIndex = (currentIndex + 1) % profiles.count
+        selectedProfile = profiles[nextIndex]
+    }
+
+    func activatePreviousProfile() {
+        guard let currentIndex = profiles.firstIndex(where: { $0.id == selectedProfile.id }) else { return }
+
+        let previousIndex = (currentIndex - 1 + profiles.count) % profiles.count
+        selectedProfile = profiles[previousIndex]
+    }
+
+    func updateShortcut(for profileId: ProfileId, to newShortcut: AppHotKey?) {
+        guard let index = profiles.firstIndex(where: { $0.id == profileId }) else { return }
+
+        profiles[index].shortcut = newShortcut
+
+        if selectedProfile.id == profileId {
+            shouldTrackProfileChange = false
+            selectedProfile = profiles[index]
+            shouldTrackProfileChange = true
+        }
+
+        saveToDisk()
+    }
+
     func updateWorkspaces(_ workspaces: [Workspace]) {
         guard let profileIndex = profiles.firstIndex(where: { $0.id == selectedProfile.id }) else { return }
 
@@ -156,5 +185,43 @@ extension ProfilesRepository {
         try? ConfigSerializer.serialize(filename: "profiles", config)
 
         selectedProfileId = selectedProfile.id
+        DispatchQueue.main.async {
+            AppDependencies.shared.hotKeysManager.refresh()
+        }
+    }
+
+    func getHotKeys() -> [(AppHotKey, () -> ())] {
+        getProfileHotKeys() + getNextPrevHotKeys()
+    }
+
+    private func getProfileHotKeys() -> [(AppHotKey, () -> ())] {
+        profiles
+            .compactMap { profile in
+                profile.shortcut.flatMap {
+                    ($0, { [weak self] in
+                        self?.selectedProfile = profile
+
+                        Toast.showWith(
+                            icon: "person.crop.circle",
+                            message: "\(profile.name) - Profile Activated",
+                            textColor: .positive
+                        )
+                    })
+                }
+            }
+    }
+
+    private func getNextPrevHotKeys() -> [(AppHotKey, () -> ())] {
+        var shortcuts: [(AppHotKey, () -> ())] = []
+
+        if let nextShortcut = settings.switchToNextProfile {
+            shortcuts.append((nextShortcut, { [weak self] in self?.activateNextProfile() }))
+        }
+
+        if let prevShortcut = settings.switchToPreviousProfile {
+            shortcuts.append((prevShortcut, { [weak self] in self?.activatePreviousProfile() }))
+        }
+
+        return shortcuts
     }
 }

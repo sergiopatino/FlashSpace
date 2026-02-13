@@ -33,14 +33,14 @@ struct WorkspaceConfigurationView: View {
                 .padding(.bottom, 16.0)
                 .fixedSize()
 
-            Text("Name:")
+            Text("Name:").padding(.bottom, 2.0)
             TextField("Name", text: $viewModel.workspaceName)
                 .onSubmit(viewModel.saveWorkspace)
                 .padding(.bottom)
 
             Picker("Display:", selection: $viewModel.workspaceDisplay) {
                 ForEach(viewModel.screens, id: \.self) {
-                    Text($0).tag($0)
+                    Text($0.padEnd(toLength: 20)).tag($0)
                 }
             }
             .padding(.bottom)
@@ -48,7 +48,7 @@ struct WorkspaceConfigurationView: View {
 
             Picker("Focus App:", selection: $viewModel.workspaceAppToFocus) {
                 ForEach(viewModel.focusAppOptions, id: \.self) {
-                    Text($0.name).tag($0)
+                    Text($0.name.padEnd(toLength: 20)).tag($0)
                 }
             }.padding(.bottom)
 
@@ -59,6 +59,7 @@ struct WorkspaceConfigurationView: View {
                 } label: {
                     Image(systemName: viewModel.workspaceSymbolIconName ?? .defaultIconSymbol)
                         .frame(maxWidth: .infinity)
+                        .frame(height: 16)
                 }
             }.padding(.bottom)
 
@@ -67,6 +68,8 @@ struct WorkspaceConfigurationView: View {
 
             Text("Assign App Shortcut:")
             HotKeyControl(shortcut: $viewModel.workspaceAssignShortcut).padding(.bottom)
+
+            Toggle("Open apps on activation", isOn: $viewModel.isOpenAppsOnActivationEnabled).padding(.bottom)
         }
         .disabled(viewModel.selectedWorkspace == nil)
     }
@@ -75,7 +78,7 @@ struct WorkspaceConfigurationView: View {
         HStack {
             Picker("Profile:", selection: $profilesRepository.selectedProfile) {
                 ForEach(profilesRepository.profiles) {
-                    Text($0.name).tag($0)
+                    Text($0.name.padEnd(toLength: 20)).tag($0)
                 }
             }
 

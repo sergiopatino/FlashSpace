@@ -42,6 +42,10 @@ final class MainViewModel: ObservableObject {
         didSet { saveWorkspace() }
     }
 
+    @Published var isOpenAppsOnActivationEnabled = false {
+        didSet { saveWorkspace() }
+    }
+
     @Published var isSymbolPickerPresented = false
     @Published var isInputDialogPresented = false
     @Published var userInput = ""
@@ -109,7 +113,7 @@ final class MainViewModel: ObservableObject {
 
     init() {
         self.workspaces = workspaceRepository.workspaces
-        self.workspaceDisplay = NSScreen.main?.localizedName ?? ""
+        self.workspaceDisplay = .current
 
         observe()
     }
@@ -139,16 +143,17 @@ final class MainViewModel: ObservableObject {
         workspaceName = selectedWorkspace?.name ?? ""
         workspaceShortcut = selectedWorkspace?.activateShortcut
         workspaceAssignShortcut = selectedWorkspace?.assignAppShortcut
-        workspaceDisplay = selectedWorkspace?.display ?? NSScreen.main?.localizedName ?? ""
+        workspaceDisplay = selectedWorkspace?.display ?? .current
         workspaceApps = selectedWorkspace?.apps
         workspaceAppToFocus = selectedWorkspace?.appToFocus ?? AppConstants.lastFocusedOption
         workspaceSymbolIconName = selectedWorkspace?.symbolIconName
+        isOpenAppsOnActivationEnabled = selectedWorkspace?.openAppsOnActivation ?? false
         selectedWorkspace.flatMap { selectedWorkspaces = [$0] }
     }
 
     private func reloadWorkspaces() {
         workspaces = workspaceRepository.workspaces
-        if let selectedWorkspace, let workspace = workspaces.first(where: { $0.id == selectedWorkspace.id }) {
+        if let selectedWorkspace, let workspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id) {
             selectedWorkspaces = [workspace]
         } else {
             selectedWorkspaces = []
@@ -173,12 +178,13 @@ extension MainViewModel {
             assignAppShortcut: workspaceAssignShortcut,
             apps: selectedWorkspace.apps,
             appToFocus: workspaceAppToFocus == AppConstants.lastFocusedOption ? nil : workspaceAppToFocus,
-            symbolIconName: workspaceSymbolIconName
+            symbolIconName: workspaceSymbolIconName,
+            openAppsOnActivation: isOpenAppsOnActivationEnabled
         )
 
         workspaceRepository.updateWorkspace(updatedWorkspace)
         workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaces.first { $0.id == selectedWorkspace.id }
+        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
     }
 
     func addWorkspace() {
@@ -195,6 +201,19 @@ extension MainViewModel {
                 self.selectedWorkspace = self.workspaces.last
             }
             .store(in: &cancellables)
+    }
+
+    func duplicateWorkspaces(_ duplicates: Set<Workspace>) {
+        let newWorkspaces = duplicates.map { duplicate in
+            var newWorkspace = duplicate
+            newWorkspace.id = .init()
+            newWorkspace.activateShortcut = nil
+            newWorkspace.assignAppShortcut = nil
+            return newWorkspace
+        }
+        workspaceRepository.addWorkspaces(contentsOf: newWorkspaces)
+        workspaces = workspaceRepository.workspaces
+        selectedWorkspaces = Set(newWorkspaces)
     }
 
     func deleteSelectedWorkspaces() {
@@ -241,7 +260,7 @@ extension MainViewModel {
         )
 
         workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaces.first { $0.id == selectedWorkspace.id }
+        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
 
         workspaceManager.activateWorkspaceIfActive(selectedWorkspace.id)
     }
@@ -260,7 +279,7 @@ extension MainViewModel {
         }
 
         workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaces.first { $0.id == selectedWorkspace.id }
+        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
         workspaceApps = self.selectedWorkspace?.apps
         self.selectedApps = []
 
